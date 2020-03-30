@@ -9,20 +9,21 @@ class UserFoowwController extends BaseController
     //注册
     public function register()
     {
-        header("location: https://showdoc.fooww.com/web/#/item/index", true);
-
         $username = trim(I("username"));
         $name = trim(I("name"));
         $password = I("password");
         $confirm_password = I("confirm_password");
-        $v_code = I("v_code");
-        $register_open = D("Options")->get("register_open");
-        /*
-        if ($register_open === '0') {
-            $this->sendError(10101, "管理员已关闭注册");
+
+        if ($username == '' && !empty($_COOKIE['showdoc_fooww_username'])) {
+            $username = $_COOKIE['showdoc_fooww_username'];
+        }
+
+        if ($username == '') {
+            header("location: https://staservice.fooww.com/Account/Login?returnUrl=" . "https%3A//showdoc.fooww.com/server/index.php%3Fs%3Dapi/userFooww/register", true);
             return;
         }
-        */
+
+        header("location: https://showdoc.fooww.com/web/#/item/index", true);
 
         if ($password == '') {
             $password = $username . "@123456";
@@ -47,6 +48,7 @@ class UserFoowwController extends BaseController
                     session("login_user", $ret);
                     $token = D("UserToken")->createToken($ret['uid']);
                     cookie('cookie_token', $token, array('expire' => 60 * 60 * 24 * 90, 'httponly' => 'httponly')); //此处由服务端控制token是否过期，所以cookies过期时间设置多久都无所谓
+                    $this->setcookie_fooww_username($username);
                     $this->sendResult(array());
                 } else {
                     $this->sendError(10101, 'register fail');
@@ -58,14 +60,29 @@ class UserFoowwController extends BaseController
             $this->sendError(10101, L('code_much_the_same'));
         }
     }
+    
+    public function setcookie_fooww_username($username)
+    {
+        cookie('showdoc_fooww_username', $username, array('expire' => time() + 60 * 60 * 24 * 90, 'httponly' => 'httponly'));
+    }
 
-    //登录
+    // 登录
     public function login()
     {
         header("location: https://showdoc.fooww.com/web/#/item/index", true);
 
         $username = I("username");
         $password = I("password");
+
+        if ($username == '' && !empty($_COOKIE['showdoc_fooww_username'])) {
+            $username = $_COOKIE['showdoc_fooww_username'];
+        }
+
+        if ($username == '') {
+            header("location: https://staservice.fooww.com/Account/Login?returnUrl=" . "https%3A//showdoc.fooww.com/server/index.php%3Fs%3Dapi/userFooww/register", true);
+            return;
+        }
+
         /*
         if (!$password) {
             $this->sendError(10206, "no empty password");
@@ -86,7 +103,7 @@ class UserFoowwController extends BaseController
             D("User")->setLastTime($ret['uid']);
             $token = D("UserToken")->createToken($ret['uid'], 60 * 60 * 24 * 180);
             cookie('cookie_token', $token, array('expire' => 60 * 60 * 24 * 180, 'httponly' => 'httponly')); //此处由服务端控制token是否过期，所以cookies过期时间设置多久都无所谓
-
+            $this->setcookie_fooww_username($username);
             $this->sendResult(array());
         } else {
             $error_code = 123123123;
